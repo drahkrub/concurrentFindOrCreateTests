@@ -26,12 +26,14 @@ public class OnDuplicateKeyUpdateTests {
     public void setUp() {
         beanService.deleteAll();
     }
-    
+
     @Test
     public void testConcurrentFindOrCreate() throws InterruptedException {
 
-        List<Bean> beans = new ArrayList();
-        
+        System.out.println("\n### testConcurrentFindOrCreate ###");
+
+        List<Bean> beans = new ArrayList<>();
+
         Runnable r = () -> {
             Bean bean = beanService.findOrCreate("dummy");
             if (bean != null) {
@@ -39,15 +41,41 @@ public class OnDuplicateKeyUpdateTests {
             }
         };
 
-        Thread t1 = new Thread(r, "Thread 1");
-        Thread t2 = new Thread(r, "    Thread 2");
-        
+        Thread t1 = new Thread(r, "Bob");
+        Thread t2 = new Thread(r, "    Alice");
+
         t1.start();
         t2.start();
-        
+
         t1.join();
         t2.join();
-        
+
+        assertThat(beans).hasSize(2);
+    }
+
+    @Test
+    public void testConcurrentFindOrCreateWithInsertIgnore() throws InterruptedException {
+
+        System.out.println("\n### testConcurrentFindOrCreateWithInsertIgnore ###");
+
+        List<Bean> beans = new ArrayList<>();
+
+        Runnable r = () -> {
+            Bean bean = beanService.findOrCreateWithInsertIgnore("dummy");
+            if (bean != null) {
+                beans.add(bean);
+            }
+        };
+
+        Thread t1 = new Thread(r, "Bob");
+        Thread t2 = new Thread(r, "    Alice");
+
+        t1.start();
+        t2.start();
+
+        t1.join();
+        t2.join();
+
         assertThat(beans).hasSize(2);
     }
 }
