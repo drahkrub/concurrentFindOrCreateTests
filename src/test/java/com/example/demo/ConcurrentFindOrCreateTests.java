@@ -4,6 +4,7 @@ import com.example.demo.domain.Bean;
 import com.example.demo.service.BeanService;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,7 +34,7 @@ public class ConcurrentFindOrCreateTests {
 
         System.out.println("\n### testWithInsertOnDuplicateUpdate ###");
 
-        List<Bean> beans = new ArrayList<>();
+        List<Bean> beans = Collections.synchronizedList(new ArrayList<>());
 
         Runnable r = () -> {
             Bean bean = beanService.findOrCreateWithOnDuplicateUpdate("dummy");
@@ -53,7 +54,7 @@ public class ConcurrentFindOrCreateTests {
 
         System.out.println("\n### testWithInsertIgnore ###");
 
-        List<Bean> beans = new ArrayList<>();
+        List<Bean> beans = Collections.synchronizedList(new ArrayList<>());
 
         Runnable r = () -> {
             Bean bean = beanService.findOrCreateWithInsertIgnore("dummy");
@@ -73,7 +74,7 @@ public class ConcurrentFindOrCreateTests {
 
         System.out.println("\n### testWithTableLock ###");
 
-        List<Bean> beans = new ArrayList<>();
+        List<Bean> beans = Collections.synchronizedList(new ArrayList<>());
 
         Runnable r = () -> {
             Bean bean = beanService.findOrCreateWithTableLock("dummy");
@@ -81,6 +82,7 @@ public class ConcurrentFindOrCreateTests {
                 beans.add(bean);
             }
         };
+
         startAndCheckThreads(Arrays.asList(
             new Thread(r, "Bob"),
             new Thread(r, "  Alice"),
@@ -89,6 +91,20 @@ public class ConcurrentFindOrCreateTests {
             new Thread(r, "        Harvey"),
             new Thread(r, "          Marcey")
         ), beans);
+
+        // ... or run a lot more threads
+/*
+        // better stay below the value of 'spring.datasource.maxActive' in application.properties
+        int numberOfThreads = 400;
+
+        beans.clear();
+
+        List<Thread> list = new ArrayList<>(numberOfThreads);
+        for (int i = numberOfThreads; --i >= 0; ) {
+            list.add(new Thread(r, "Thread " + i));
+        }
+        startAndCheckThreads(list, beans);
+*/
     }
 
     private void startAndCheckThreads(List<Thread> list, List<Bean> beans) {
@@ -96,6 +112,6 @@ public class ConcurrentFindOrCreateTests {
         list.forEach((t) -> {
             try { t.join(); } catch (InterruptedException ignore) {}
         });
-        assertThat(beans).hasSameSizeAs(list);
+        assertThat(beans).hasSameSizeAs(list).doesNotContainNull();
     }
 }
