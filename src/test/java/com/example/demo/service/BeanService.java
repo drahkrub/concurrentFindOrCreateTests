@@ -9,7 +9,9 @@ public interface BeanService {
 
     void deleteAll();
 
-    Bean findOrCreate(String name);
+    Bean findOrCreateWithTableLock(String name);
+
+    Bean findOrCreateWithOnDuplicateUpdate(String name);
 
     Bean findOrCreateWithInsertIgnore(String name);
 }

@@ -28,13 +28,14 @@ public class BeanServiceImpl implements BeanService {
 
     @Transactional
     @Override
-    public Bean findOrCreate(final String name) {
+    public Bean findOrCreateWithOnDuplicateUpdate(final String name) {
+
         Bean bean = beanRepository.findByName(name);
 
         debug(bean, "findByName(\"" + name + "\")");
 
         if (bean == null) {
-            final int id = createWithInsertOnDuplicateKeyUpdate(name);
+            final int id = createWithOnDuplicateKeyUpdate(name);
             bean = beanRepository.findOne(id);
 
             debug(bean, "findOne(" + id + ")");
@@ -52,6 +53,7 @@ public class BeanServiceImpl implements BeanService {
     @Transactional
     @Override
     public Bean findOrCreateWithInsertIgnore(String name) {
+
         Bean bean = beanRepository.findByName(name);
 
         debug(bean, "findByName(\"" + name + "\")");
@@ -64,6 +66,49 @@ public class BeanServiceImpl implements BeanService {
         return bean;
     }
 
+    @Transactional
+    @Override
+    public Bean findOrCreateWithTableLock(String name) {
+
+        Bean bean = beanRepository.findByName(name);
+
+        debug(bean, "findByName(\"" + name + "\")");
+
+        if (bean == null) {
+
+            debug("lock table");
+
+            executeNative("LOCK TABLES bean WRITE, bean as bean0_ WRITE");
+
+            debug("lock aquired");
+
+            // the bean might already be created in a different transaction,
+            // therefore use "INSERT ... ON DUPLICATE UPDATE" or "INSERT IGNORE"
+            // or simply search again for the bean (bonus when using the
+            // search: name must not be unique!).
+            bean = beanRepository.findByName(name);
+
+            debug(bean, "second findByName(\"" + name + "\")");
+
+            if (bean == null) { // still not there -> create it!
+                bean = new Bean();
+                bean.setName(name);
+                beanRepository.save(bean);
+
+                debug("bean created!");
+            }
+
+            debug("unlock table");
+
+            executeNative("UNLOCK TABLES");
+        }
+        return bean;
+    }
+
+    private void executeNative(String sql) {
+        entityManager.createNativeQuery(sql).executeUpdate();
+    }
+
     private void createWithInsertIgnore(final String name) {
         final int numChanged = entityManager
             .createNativeQuery("insert ignore into bean(name) values (:name)")
@@ -73,7 +118,7 @@ public class BeanServiceImpl implements BeanService {
         debug("bean was created" + (numChanged == 0 ? " in some other thread" : "") + ".");
     }
 
-    private int createWithInsertOnDuplicateKeyUpdate(final String name) {
+    private int createWithOnDuplicateKeyUpdate(final String name) {
         final int numChanged = entityManager.createNativeQuery(
                 "insert into bean(name) values (:name)"
                         + " on duplicate key update"
