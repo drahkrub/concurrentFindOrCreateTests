@@ -15,11 +15,13 @@ public class Bean implements Serializable {
     
     private static final long serialVersionUID = 1L;
     
-    private Integer id;
-    private String name;
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Integer id;
+
+    @Column(nullable = false, unique = true)
+    private String name;
+
     public Integer getId() {
         return id;
     }
@@ -28,7 +30,6 @@ public class Bean implements Serializable {
         this.id = id;
     }
 
-    @Column(nullable = false, unique = true)
     public String getName() {
         return name;
     }
