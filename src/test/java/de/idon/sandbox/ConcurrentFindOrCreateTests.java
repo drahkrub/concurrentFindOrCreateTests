@@ -4,6 +4,7 @@ import de.idon.sandbox.domain.Bean;
 import de.idon.sandbox.service.BeanService;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Supplier;
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,10 +31,6 @@ public class ConcurrentFindOrCreateTests {
     @Before
     public void setUp() {
         beanService.deleteAll();
-    }
-
-    private static interface BeanGetter {
-        Bean get();
     }
 
     @Test
@@ -64,7 +61,7 @@ public class ConcurrentFindOrCreateTests {
         });
     }
 
-    private void startThreads(BeanGetter beanGetter) {
+    private void startThreads(Supplier<Bean> supplier) {
         AtomicInteger count = new AtomicInteger();
         CountDownLatch startSignal = new CountDownLatch(1);
         CountDownLatch doneSignal = new CountDownLatch(NUM_THREADS);
@@ -72,7 +69,7 @@ public class ConcurrentFindOrCreateTests {
             new Thread(() -> {
                 try {
                     startSignal.await();
-                    Bean bean = beanGetter.get();
+                    Bean bean = supplier.get();
                     if (bean != null) {
                         count.incrementAndGet();
                     }
