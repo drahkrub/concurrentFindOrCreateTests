@@ -1,6 +1,6 @@
-package com.example.demo.service;
+package de.idon.sandbox.service;
 
-import com.example.demo.domain.Bean;
+import de.idon.sandbox.domain.Bean;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 /**

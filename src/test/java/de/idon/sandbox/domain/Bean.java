@@ -1,4 +1,4 @@
-package com.example.demo.domain;
+package de.idon.sandbox.domain;
 
 import java.io.Serializable;
 import javax.persistence.Column;

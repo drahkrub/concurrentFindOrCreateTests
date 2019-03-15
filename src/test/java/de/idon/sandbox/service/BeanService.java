@@ -1,6 +1,6 @@
-package com.example.demo.service;
+package de.idon.sandbox.service;
 
-import com.example.demo.domain.Bean;
+import de.idon.sandbox.domain.Bean;
 
 /**
  * @author Burkhard Graves
@@ -9,9 +9,11 @@ public interface BeanService {
 
     void deleteAll();
 
-    Bean findOrCreateWithTableLock(String name);
-
     Bean findOrCreateWithOnDuplicateUpdate(String name);
 
     Bean findOrCreateWithInsertIgnore(String name);
+    
+    Bean findOrCreateWithSelect(String name);
+
+    Bean findOrCreateWithTableLock(String name);
 }
