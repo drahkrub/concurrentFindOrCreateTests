@@ -2,12 +2,10 @@ package de.idon.sandbox.service;
 
 import de.idon.sandbox.domain.Bean;
 import javax.persistence.EntityManager;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
-import static org.assertj.core.api.Assertions.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @author Burkhard Graves
@@ -36,13 +34,12 @@ public class BeanServiceImpl implements BeanService {
     @Transactional
     public Bean findOrCreateWithOnDuplicateUpdate(final String name) {
 
-        final int numChanged
-                = entityManager.createNativeQuery(
-                        "insert into bean(name) values (:name)"
-                        + " on duplicate key update name = name")
-                        .setParameter("name", name).executeUpdate();
+        final int numChanged = entityManager.createNativeQuery(
+                "insert into bean(name) values (:name)"
+                + " on duplicate key update name = name")
+                .setParameter("name", name).executeUpdate();
 
-        assertThat(numChanged).isEqualTo(1);
+        LOGGER.debug("numChanged: {}", numChanged);
 
         return beanRepository.findByName(name);
     }
@@ -51,12 +48,11 @@ public class BeanServiceImpl implements BeanService {
     @Transactional
     public Bean findOrCreateWithInsertIgnore(String name) {
 
-        final int numChanged
-                = entityManager.createNativeQuery(
-                        "insert ignore into bean(name) values (:name)")
-                        .setParameter("name", name).executeUpdate();
+        final int numChanged = entityManager.createNativeQuery(
+                "insert ignore into bean(name) values (:name)")
+                .setParameter("name", name).executeUpdate();
 
-        assertThat(numChanged).isBetween(0, 1);
+        LOGGER.debug("numChanged: {}", numChanged);
 
         return beanRepository.findByName(name);
     }
@@ -65,13 +61,12 @@ public class BeanServiceImpl implements BeanService {
     @Transactional
     public Bean findOrCreateWithSelect(String name) {
 
-        final int numChanged
-                = entityManager.createNativeQuery(
-                        "insert into bean(name) select :name"
-                        + " where not exists(select 1 from bean where name=:name)")
-                        .setParameter("name", name).executeUpdate();
+        final int numChanged = entityManager.createNativeQuery(
+                "insert into bean(name) select :name"
+                + " where not exists(select 1 from bean where name=:name)")
+                .setParameter("name", name).executeUpdate();
 
-        assertThat(numChanged).isBetween(0, 1);
+        LOGGER.debug("numChanged: {}", numChanged);
 
         return beanRepository.findByName(name);
     }

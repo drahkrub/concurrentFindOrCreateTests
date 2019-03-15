@@ -2,23 +2,24 @@ package de.idon.sandbox;
 
 import de.idon.sandbox.domain.Bean;
 import de.idon.sandbox.service.BeanService;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
+import static org.assertj.core.api.Assertions.assertThat;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import org.junit.Before;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @SpringBootApplication
 public class ConcurrentFindOrCreateTests {
+
+    private static final int NUM_THREADS = 10;
+    private static final String DUMMY = "dummy";
 
     @Autowired
     private BeanService beanService;
@@ -28,80 +29,63 @@ public class ConcurrentFindOrCreateTests {
         beanService.deleteAll();
     }
 
-    @Test
-    public void testWithInsertOnDuplicateUpdate() throws InterruptedException {
-
-        AtomicInteger count = new AtomicInteger();
-
-        Runnable r = () -> {
-            Bean bean = beanService.findOrCreateWithOnDuplicateUpdate("dummy");
-            if (bean != null) {
-                count.incrementAndGet();
-            }
-        };
-
-        startAndCheckThreads(r, count);
+    private static interface BeanGetter {
+        Bean get();
     }
 
     @Test
-    public void testWithInsertIgnore() throws InterruptedException {
-
-        AtomicInteger count = new AtomicInteger();
-
-        Runnable r = () -> {
-            Bean bean = beanService.findOrCreateWithInsertIgnore("dummy");
-            if (bean != null) {
-                count.incrementAndGet();
-            }
-        };
-
-        startAndCheckThreads(r, count);
-    }
-
-    @Test
-    public void testWithSelect() throws InterruptedException {
-
-        AtomicInteger count = new AtomicInteger();
-
-        Runnable r = () -> {
-            Bean bean = beanService.findOrCreateWithSelect("dummy");
-            if (bean != null) {
-                count.incrementAndGet();
-            }
-        };
-
-        startAndCheckThreads(r, count);
-    }
-
-    @Test
-    public void testWithTableLock() throws InterruptedException {
-
-        AtomicInteger count = new AtomicInteger();
-
-        Runnable r = () -> {
-            Bean bean = beanService.findOrCreateWithTableLock("dummy");
-            if (bean != null) {
-                count.incrementAndGet();
-            }
-        };
-
-        startAndCheckThreads(r, count);
-    }
-
-    private void startAndCheckThreads(Runnable r, AtomicInteger counter) {
-
-        final int numThreads = 10;
-        List<Thread> threads = new ArrayList(numThreads);
-        for (int i = numThreads; --i >= 0;) {
-            threads.add(new Thread(r, "thread_" + i));
-        }
-        threads.forEach(Thread::start);
-        threads.forEach(t -> {
-            try {
-                t.join();
-            } catch (InterruptedException ignore) {
-            }
+    public void testWithInsertOnDuplicateUpdate() {
+        startThreads(() -> {
+            return beanService.findOrCreateWithOnDuplicateUpdate(DUMMY);
         });
-        assertThat(counter.get()).isEqualTo(numThreads);
+    }
+
+    @Test
+    public void testWithInsertIgnore() {
+        startThreads(() -> {
+            return beanService.findOrCreateWithInsertIgnore(DUMMY);
+        });
+    }
+
+    @Test
+    public void testWithSelect() {
+        startThreads(() -> {
+            return beanService.findOrCreateWithSelect(DUMMY);
+        });
+    }
+
+    @Test
+    public void testWithTableLock() {
+        startThreads(() -> {
+            return beanService.findOrCreateWithTableLock(DUMMY);
+        });
+    }
+
+    private void startThreads(BeanGetter beanGetter) {
+        AtomicInteger count = new AtomicInteger();
+        CountDownLatch startSignal = new CountDownLatch(1);
+        CountDownLatch doneSignal = new CountDownLatch(NUM_THREADS);
+        for (int i = NUM_THREADS; --i >= 0;) {
+            new Thread(() -> {
+                try {
+                    startSignal.await();
+                    Bean bean = beanGetter.get();
+                    if (bean != null) {
+                        count.incrementAndGet();
+                    }
+                } catch (InterruptedException ex) {
+                    ex.printStackTrace();
+                } finally {
+                    doneSignal.countDown();
+                }
+            }).start();
+        }
+        try {
+            startSignal.countDown();
+            doneSignal.await();
+        } catch (InterruptedException ex) {
+            throw new IllegalStateException(ex);
+        }
+        assertThat(count.get()).isEqualTo(NUM_THREADS);
     }
 }
