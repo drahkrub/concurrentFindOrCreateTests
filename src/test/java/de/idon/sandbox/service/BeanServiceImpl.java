@@ -33,42 +33,23 @@ public class BeanServiceImpl implements BeanService {
     @Override
     @Transactional
     public Bean findOrCreateWithOnDuplicateUpdate(final String name) {
-
-        final int numChanged = entityManager.createNativeQuery(
-                "insert into bean(name) values (:name)"
-                + " on duplicate key update name = name")
-                .setParameter("name", name).executeUpdate();
-
-        LOGGER.debug("numChanged: {}", numChanged);
-
+        beanRepository.findOrCreateWithOnDuplicateUpdate(name);
         return beanRepository.findByName(name);
     }
 
     @Override
     @Transactional
     public Bean findOrCreateWithInsertIgnore(String name) {
-
-        final int numChanged = entityManager.createNativeQuery(
-                "insert ignore into bean(name) values (:name)")
-                .setParameter("name", name).executeUpdate();
-
-        LOGGER.debug("numChanged: {}", numChanged);
-
+        beanRepository.findOrCreateWithInsertIgnore(name);
         return beanRepository.findByName(name);
     }
 
     @Override
     @Transactional
     public Bean findOrCreateWithSelect(String name) {
-
-        final int numChanged = entityManager.createNativeQuery(
-                "insert into bean(name) select :name"
-                + " where not exists(select 1 from bean where name=:name)")
-                .setParameter("name", name).executeUpdate();
-
-        LOGGER.debug("numChanged: {}", numChanged);
-
+        beanRepository.findOrCreateWithSelect(name);
         return beanRepository.findByName(name);
+
     }
 
     @Override
