@@ -1,4 +1,12 @@
-# Concurrent find-or-create tests in MySQL
+# Warning
+
+The stuff I've done here (is used in production [shudder] but) is just "upper nonsense".
+
+Unfortunatly I've found no time to fix it up to now!
+
+<hr>
+
+## Concurrent find-or-create tests in MySQL
 
 See the comments below Vlad's answer to
 [Find or insert based on unique key with Hibernate](https://stackoverflow.com/questions/5022812/find-or-insert-based-on-unique-key-with-hibernate/47095145#47095145)
